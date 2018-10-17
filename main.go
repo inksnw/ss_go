@@ -56,6 +56,28 @@ func main() {
 
 	}
 
+	if flags.Server != "" { // server mode
+		addr := flags.Server
+		cipher := flags.Cipher
+		password := flags.Password
+		var err error
+		if strings.HasPrefix(addr, "ss://") {
+			addr, cipher, password, err = parseURL(addr)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		ciph, err := core.PickCipher(cipher, password)
+		if err != nil {
+			log.Fatal(err)
+		}
+		go tcpRemote(addr, ciph.StreamConn)
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+		<-sigCh
+	}
+
 }
 
 func parseURL(s string) (addr, cipher, password string, err error) {
