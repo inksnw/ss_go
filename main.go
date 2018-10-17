@@ -9,14 +9,12 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/ss_go/core"
 )
 
 var config struct {
-	Verbose    bool
-	UDPTimeout time.Duration
+	Verbose bool
 }
 
 func main() {
@@ -41,17 +39,12 @@ func main() {
 		cipher := flags.Cipher
 		password := flags.Password
 		var err error
-
 		if strings.HasPrefix(addr, "ss://") {
 			addr, cipher, password, err = parseURL(addr)
-			if err != nil {
-				log.Fatal(err)
-			}
+			CheckErr(err)
 		}
 		ciph, err := core.PickCipher(cipher, password)
-		if err != nil {
-			log.Fatal(err)
-		}
+		CheckErr(err)
 
 		if flags.Socks != "" {
 			go socksLocal(flags.Socks, addr, ciph.StreamConn)
@@ -67,9 +60,7 @@ func main() {
 
 func parseURL(s string) (addr, cipher, password string, err error) {
 	u, err := url.Parse(s)
-	if err != nil {
-		return
-	}
+	CheckErr(err)
 	addr = u.Host
 	if u.User != nil {
 		cipher = u.User.Username()
@@ -83,5 +74,11 @@ var logger = log.New(os.Stderr, "", log.Lshortfile|log.LstdFlags)
 func logf(f string, v ...interface{}) {
 	if config.Verbose {
 		logger.Output(2, fmt.Sprintf(f, v...))
+	}
+}
+
+func CheckErr(err error) {
+	if err != nil {
+		panic(err)
 	}
 }

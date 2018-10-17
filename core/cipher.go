@@ -12,8 +12,6 @@ type Cipher interface {
 	StreamConnCipher
 }
 
-// ErrCipherNotSupported occurs when a cipher is not supported (likely because of security concerns).
-var ErrCipherNotSupported = errors.New("cipher not supported")
 
 type aeadCipher struct {
 	shadowaead.Cipher
@@ -44,7 +42,7 @@ func PickCipher(name string, password string) (Cipher, error) {
 		aead, err := choice.New(key)
 		return &aeadCipher{aead}, err
 	}
-	return nil, ErrCipherNotSupported
+	return nil, errors.New("cipher not supported")
 
 }
 
