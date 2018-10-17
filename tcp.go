@@ -9,34 +9,37 @@ import (
 
 // Create a SOCKS server listening on addr and proxy to server.
 func socksLocal(addr, server string, shadow func(net.Conn) net.Conn) {
-	logf("SOCKS proxy %s <-> %s", addr, server)
 	tcpLocal(addr, server, shadow, func(c net.Conn) (socks.Addr, error) { return socks.Handshake(c) })
+
 
 }
 func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(net.Conn) (socks.Addr, error)) {
-	l, err := net.Listen("tcp", addr)
+	local_server, err := net.Listen("tcp", addr)
 	if err != nil {
 		logf("failed to listen on %s: %v", addr, err)
 		return
+	}else{
+		logf("listen on %s", addr)
+		logf("SOCKS proxy %s <-> %s", addr, server)
 	}
+
 	for {
-		c, err := l.Accept()
+		local_conn, err := local_server.Accept()
 		if err != nil {
 			logf("failed to accept: %s", err)
 			continue
 		}
 		go func() {
-			defer c.Close()
-			c.(*net.TCPConn).SetKeepAlive(true)
-			tgt, err := getAddr(c)
+			defer local_conn.Close()
+			local_conn.(*net.TCPConn).SetKeepAlive(true)
+			target_addr, err := getAddr(local_conn)
 			if err != nil {
-
 				// UDP: keep the connection until disconnect then free the UDP socket
 				if err == socks.InfoUDPAssociate {
 					buf := []byte{}
 					// block here
 					for {
-						_, err := c.Read(buf)
+						_, err := local_conn.Read(buf)
 						if err, ok := err.(net.Error); ok && err.Timeout() {
 							continue
 						}
@@ -49,19 +52,19 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 				return
 			}
 
-			rc, err := net.Dial("tcp", server)
+			remote_conn, err := net.Dial("tcp", server)
 			if err != nil {
 				logf("failed to connect to server %v: %v", server, err)
 				return
 			}
-			defer rc.Close()
-			rc.(*net.TCPConn).SetKeepAlive(true)
-			rc = shadow(rc)
-			if _, err = rc.Write(tgt); err != nil {
+			defer remote_conn.Close()
+			remote_conn.(*net.TCPConn).SetKeepAlive(true)
+			remote_conn = shadow(remote_conn)
+			if _, err = remote_conn.Write(target_addr); err != nil {
 				logf("failed to send target address: %v", err)
 				return
 			}
-			_, _, err = relay(rc, c)
+			_, _, err = relay(remote_conn, local_conn)
 			if err != nil {
 				if err, ok := err.(net.Error); ok && err.Timeout() {
 					return // ignore i/o timeout
