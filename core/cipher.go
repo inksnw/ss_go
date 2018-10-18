@@ -12,7 +12,6 @@ type Cipher interface {
 	StreamConnCipher
 }
 
-
 type aeadCipher struct {
 	shadowaead.Cipher
 }

@@ -11,14 +11,13 @@ import (
 func socksLocal(addr, server string, shadow func(net.Conn) net.Conn) {
 	tcpLocal(addr, server, shadow, func(c net.Conn) (socks.Addr, error) { return socks.Handshake(c) })
 
-
 }
 func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(net.Conn) (socks.Addr, error)) {
 	local_server, err := net.Listen("tcp", addr)
 	if err != nil {
 		logf("failed to listen on %s: %v", addr, err)
 		return
-	}else{
+	} else {
 		logf("listen on %s", addr)
 		logf("SOCKS proxy %s <-> %s", addr, server)
 	}
@@ -75,8 +74,6 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 
 	}
 }
-
-
 
 // Listen on addr for incoming connections.
 func tcpRemote(addr string, shadow func(net.Conn) net.Conn) {
