@@ -8,12 +8,14 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/ss_go/core"
 )
 
 var config struct {
 	Verbose bool
+	UDPTimeout time.Duration
 }
 var flags struct {
 	Client   string
@@ -38,7 +40,13 @@ func init_flag() {
 	flag.StringVar(&flags.Client, "c", "", "客户端地址")
 	flag.StringVar(&flags.Socks, "socks", "", "客户端监听地址")
 	flag.Parse()
+	if flags.Client == "" && flags.Server == "" {
+		flag.Usage()
+		return
+	}
 }
+
+
 
 func client() {
 	addr := flags.Client
