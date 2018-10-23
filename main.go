@@ -27,8 +27,8 @@ var flags struct {
 
 func main() {
 	init_flag()
-	go core.WebUi()
 	if flags.Client != "" {
+		go core.WebUi()
 		client()
 	} else if flags.Server != "" {
 		server()
