@@ -27,11 +27,14 @@ var flags struct {
 
 func main() {
 	init_flag()
+	fmt.Print("@@@@@@@@@@@@@@@@")
+	core.Web()
 	if flags.Client != "" {
 		client()
 	} else if flags.Server != "" {
 		server()
 	}
+
 }
 
 func init_flag() {
