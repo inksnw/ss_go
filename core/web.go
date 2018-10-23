@@ -3,13 +3,10 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"time"
-	"github.com/gorilla/mux"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 type Todo struct {
@@ -19,7 +16,7 @@ type Todo struct {
 }
 
 type Todos []Todo
-func run() {
+func WebUi() {
 
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", index)
@@ -29,19 +26,13 @@ func run() {
 
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	router.PathPrefix("/static").Handler(s)
-	fmt.Print("监听8080")
+	fmt.Println("webui监听于8080")
+
 	log.Fatal(http.ListenAndServe(":8080", router))
 
 
 }
 
-func Web()  {
-	go run()
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	<-sigCh
-
-}
 func index(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "static/index.html")
 }

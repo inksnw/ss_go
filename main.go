@@ -27,8 +27,7 @@ var flags struct {
 
 func main() {
 	init_flag()
-	fmt.Print("@@@@@@@@@@@@@@@@")
-	core.Web()
+	go core.WebUi()
 	if flags.Client != "" {
 		client()
 	} else if flags.Server != "" {
