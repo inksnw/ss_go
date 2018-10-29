@@ -13,7 +13,7 @@ func socksLocal(addr, server string, shadow func(net.Conn) net.Conn) {
 
 }
 func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(net.Conn) (socks.Addr, error)) {
-	local_server, err := net.Listen("tcp", addr)
+	localServer, err := net.Listen("tcp", addr)
 	if err != nil {
 		logf("failed to listen on %s: %v", addr, err)
 		return
@@ -23,47 +23,32 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 	}
 
 	for {
-		local_conn, err := local_server.Accept()
+		localConn, err := localServer.Accept()
 		if err != nil {
 			logf("failed to accept: %s", err)
 			continue
 		}
 		go func() {
-			defer local_conn.Close()
-			local_conn.(*net.TCPConn).SetKeepAlive(true)
-			target_addr, err := getAddr(local_conn)
+			defer localConn.Close()
+			localConn.(*net.TCPConn).SetKeepAlive(true)
+			targetAddr, err := getAddr(localConn)
 			if err != nil {
-				// UDP: keep the connection until disconnect then free the UDP socket
-				if err == socks.InfoUDPAssociate {
-					buf := []byte{}
-					// block here
-					for {
-						_, err := local_conn.Read(buf)
-						if err, ok := err.(net.Error); ok && err.Timeout() {
-							continue
-						}
-						logf("UDP Associate End.")
-						return
-					}
-				}
-
 				logf("failed to get target address: %v", err)
 				return
 			}
-
-			remote_conn, err := net.Dial("tcp", server)
+			remoteConn, err := net.Dial("tcp", server)
 			if err != nil {
 				logf("failed to connect to server %v: %v", server, err)
 				return
 			}
-			defer remote_conn.Close()
-			remote_conn.(*net.TCPConn).SetKeepAlive(true)
-			remote_conn = shadow(remote_conn)
-			if _, err = remote_conn.Write(target_addr); err != nil {
+			defer remoteConn.Close()
+			remoteConn.(*net.TCPConn).SetKeepAlive(true)
+			remoteConn = shadow(remoteConn)
+			if _, err = remoteConn.Write(targetAddr); err != nil {
 				logf("failed to send target address: %v", err)
 				return
 			}
-			_, _, err = relay(remote_conn, local_conn)
+			_, _, err = relay(remoteConn, localConn)
 			if err != nil {
 				if err, ok := err.(net.Error); ok && err.Timeout() {
 					return // ignore i/o timeout

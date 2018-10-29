@@ -28,7 +28,6 @@ var flags struct {
 func main() {
 	init_flag()
 	if flags.Client != "" {
-		go core.WebUi()
 		client()
 	} else if flags.Server != "" {
 		server()
@@ -37,10 +36,10 @@ func main() {
 }
 
 func init_flag() {
-	flag.BoolVar(&config.Verbose, "verbose", false, "详细日志模式")
-	flag.StringVar(&flags.Server, "s", "", "服务端地址")
-	flag.StringVar(&flags.Client, "c", "", "客户端地址")
-	flag.StringVar(&flags.Socks, "socks", "", "客户端监听地址")
+	flag.BoolVar(&config.Verbose, "verbose", false, "详细日志")
+	flag.StringVar(&flags.Server, "s", "", "服务端")
+	flag.StringVar(&flags.Client, "c", "", "客户端")
+	flag.StringVar(&flags.Socks, "socks", "", "客户端监听")
 	flag.Parse()
 	if flags.Client == "" && flags.Server == "" {
 		flag.Usage()
@@ -51,10 +50,8 @@ func init_flag() {
 
 
 func client() {
-	addr := flags.Client
-	cipher := flags.Cipher
-	password := flags.Password
-	addr, cipher, password, _ = parseURL(addr)
+	addrString := flags.Client
+	addr, cipher, password, _ := parseURL(addrString)
 	ciph, _ := core.PickCipher(cipher, password)
 	go socksLocal(flags.Socks, addr, ciph.StreamConn)
 	sigCh := make(chan os.Signal, 1)
@@ -63,11 +60,10 @@ func client() {
 
 }
 
+
 func server() {
-	addr := flags.Server
-	cipher := flags.Cipher
-	password := flags.Password
-	addr, cipher, password, _ = parseURL(addr)
+	addrString := flags.Server
+	addr, cipher, password, _ := parseURL(addrString)
 	ciph, _ := core.PickCipher(cipher, password)
 	go tcpRemote(addr, ciph.StreamConn)
 	sigCh := make(chan os.Signal, 1)
@@ -75,14 +71,13 @@ func server() {
 	<-sigCh
 }
 
-func parseURL(s string) (addr, cipher, password string, err error) {
-	u, err := url.Parse(s)
+
+func parseURL(addrString string) (addr, cipher, password string, err error) {
+	u, err := url.Parse(addrString)
 	CheckErr(err)
 	addr = u.Host
-	if u.User != nil {
-		cipher = u.User.Username()
-		password, _ = u.User.Password()
-	}
+	cipher = u.User.Username()
+	password, _ = u.User.Password()
 	return
 }
 
