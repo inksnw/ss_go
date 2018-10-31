@@ -10,10 +10,10 @@ import (
 )
 
 type KeySizeError int
+
 func (e KeySizeError) Error() string {
 	return "key size error: need " + strconv.Itoa(int(e)) + " bytes"
 }
-
 
 type Cipher interface {
 	KeySize() int
@@ -40,17 +40,18 @@ func (a *metaCipher) Decrypter(salt []byte) (cipher.AEAD, error) {
 	return a.makeAEAD(subkey)
 }
 
-
 func hkdfSHA1(secret, salt, info, outkey []byte) {
 	r := hkdf.New(sha1.New, secret, salt, info)
 	if _, err := io.ReadFull(r, outkey); err != nil {
 		panic(err) // should never happen
 	}
 }
+
 type metaCipher struct {
 	psk      []byte
 	makeAEAD func(key []byte) (cipher.AEAD, error)
 }
+
 // Chacha20Poly1305 creates a new Cipher with a pre-shared key. len(psk)
 // must be 32.
 func Chacha20Poly1305(psk []byte) (Cipher, error) {

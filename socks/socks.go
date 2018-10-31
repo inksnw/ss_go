@@ -5,8 +5,10 @@ import (
 	"net"
 	"strconv"
 )
+
 // MaxAddrLen is the maximum size of SOCKS address in bytes.
 const MaxAddrLen = 1 + 1 + 255 + 2
+
 // SOCKS request commands as defined in RFC 1928 section 4.
 const (
 	CmdConnect      = 1
@@ -41,9 +43,9 @@ const (
 	InfoUDPAssociate        = Error(9)
 )
 
-
 // UDPEnabled is the toggle for UDP support
 var UDPEnabled = false
+
 type Addr []byte
 
 // ParseAddr parses the address in string s. Returns nil if failed.
@@ -111,28 +113,27 @@ func readAddr(r io.Reader, b []byte) (Addr, error) {
 	return nil, ErrAddressNotSupported
 }
 
-
-func Handshake(rw io.ReadWriter)(Addr,error)  {
-	buf :=make([]byte,MaxAddrLen)
-	if _,err:=io.ReadFull(rw,buf[:2]);err!=nil{
-		return nil,err
+func Handshake(rw io.ReadWriter) (Addr, error) {
+	buf := make([]byte, MaxAddrLen)
+	if _, err := io.ReadFull(rw, buf[:2]); err != nil {
+		return nil, err
 	}
-	nmethods:=buf[1]
-	if _,err :=io.ReadFull(rw,buf[:nmethods]);err!=nil{
-		return nil,err
+	nmethods := buf[1]
+	if _, err := io.ReadFull(rw, buf[:nmethods]); err != nil {
+		return nil, err
 	}
 	//wirte VER METHOD
-	if _,err :=rw.Write([]byte{5,0}); err!=nil{
-		return nil,err
+	if _, err := rw.Write([]byte{5, 0}); err != nil {
+		return nil, err
 	}
 	//read VER CMD RSV ATYP DST.ADDR DST.PORT
-	if _,err :=io.ReadFull(rw,buf[:3]);err!=nil{
-		return nil,err
+	if _, err := io.ReadFull(rw, buf[:3]); err != nil {
+		return nil, err
 	}
-	cmd:=buf[1]
-	addr,err:=readAddr(rw,buf)
-	if err!=nil{
-		return nil,err
+	cmd := buf[1]
+	addr, err := readAddr(rw, buf)
+	if err != nil {
+		return nil, err
 	}
 	switch cmd {
 	case CmdConnect:

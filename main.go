@@ -14,7 +14,7 @@ import (
 )
 
 var config struct {
-	Verbose bool
+	Verbose    bool
 	UDPTimeout time.Duration
 }
 var flags struct {
@@ -47,8 +47,6 @@ func init_flag() {
 	}
 }
 
-
-
 func client() {
 	addrString := flags.Client
 	addr, cipher, password, _ := parseURL(addrString)
@@ -60,7 +58,6 @@ func client() {
 
 }
 
-
 func server() {
 	addrString := flags.Server
 	addr, cipher, password, _ := parseURL(addrString)
@@ -70,7 +67,6 @@ func server() {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 }
-
 
 func parseURL(addrString string) (addr, cipher, password string, err error) {
 	u, err := url.Parse(addrString)
