@@ -8,11 +8,11 @@ import (
 )
 
 // Create a SOCKS server listening on addr and proxy to server.
-func socksLocal(addr, server string, shadow func(net.Conn) net.Conn) {
-	tcpLocal(addr, server, shadow, func(c net.Conn) (socks.Addr, error) { return socks.Handshake(c) })
+func socksLocal(addr, server string) {
+	tcpLocal(addr, server, func(c net.Conn) (socks.Addr, error) { return socks.Handshake(c) })
 
 }
-func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(net.Conn) (socks.Addr, error)) {
+func tcpLocal(addr, server string,  getAddr func(net.Conn) (socks.Addr, error)) {
 	localServer, err := net.Listen("tcp", addr)
 	if err != nil {
 		logf("failed to listen on %s: %v", addr, err)
@@ -43,7 +43,7 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 			}
 			defer remoteConn.Close()
 			remoteConn.(*net.TCPConn).SetKeepAlive(true)
-			remoteConn = shadow(remoteConn)
+
 			if _, err = remoteConn.Write(targetAddr); err != nil {
 				logf("failed to send target address: %v", err)
 				return
@@ -61,7 +61,7 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 }
 
 // Listen on addr for incoming connections.
-func tcpRemote(addr string, shadow func(net.Conn) net.Conn) {
+func tcpRemote(addr string) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		logf("failed to listen on %s: %v", addr, err)
@@ -79,7 +79,6 @@ func tcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 		go func() {
 			defer c.Close()
 			c.(*net.TCPConn).SetKeepAlive(true)
-			c = shadow(c)
 
 			tgt, err := socks.ReadAddr(c)
 			if err != nil {

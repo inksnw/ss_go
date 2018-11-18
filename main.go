@@ -8,15 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-
-	"github.com/ss_go/core"
 )
 
-var config struct {
-	Verbose    bool
-	UDPTimeout time.Duration
-}
 var flags struct {
 	Client   string
 	Server   string
@@ -26,20 +19,18 @@ var flags struct {
 }
 
 func main() {
-	init_flag()
+	initFlag()
 	if flags.Client != "" {
 		client()
 	} else if flags.Server != "" {
 		server()
 	}
-
 }
 
-func init_flag() {
-	flag.BoolVar(&config.Verbose, "verbose", false, "详细日志")
-	flag.StringVar(&flags.Server, "s", "", "服务端")
-	flag.StringVar(&flags.Client, "c", "", "客户端")
-	flag.StringVar(&flags.Socks, "socks", "", "客户端监听")
+func initFlag() {
+	flag.StringVar(&flags.Server, "s", "", "服务端参数")
+	flag.StringVar(&flags.Client, "c", "", "客户端参数")
+	flag.StringVar(&flags.Socks, "socks", "", "客户端监听地址")
 	flag.Parse()
 	if flags.Client == "" && flags.Server == "" {
 		flag.Usage()
@@ -48,10 +39,8 @@ func init_flag() {
 }
 
 func client() {
-	addrString := flags.Client
-	addr, cipher, password, _ := parseURL(addrString)
-	ciph, _ := core.PickCipher(cipher, password)
-	go socksLocal(flags.Socks, addr, ciph.StreamConn)
+	addr, _, _, _ := parseURL(flags.Client)
+	go socksLocal(flags.Socks, addr)
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
@@ -59,10 +48,9 @@ func client() {
 }
 
 func server() {
-	addrString := flags.Server
-	addr, cipher, password, _ := parseURL(addrString)
-	ciph, _ := core.PickCipher(cipher, password)
-	go tcpRemote(addr, ciph.StreamConn)
+	addr, _, _, err := parseURL(flags.Server)
+	CheckErr(err)
+	go tcpRemote(addr)
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
@@ -80,9 +68,7 @@ func parseURL(addrString string) (addr, cipher, password string, err error) {
 var logger = log.New(os.Stderr, "", log.Lshortfile|log.LstdFlags)
 
 func logf(f string, v ...interface{}) {
-	if config.Verbose {
-		logger.Output(2, fmt.Sprintf(f, v...))
-	}
+	logger.Output(2, fmt.Sprintf(f, v...))
 }
 
 func CheckErr(err error) {
