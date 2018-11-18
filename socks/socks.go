@@ -1,6 +1,7 @@
 package socks
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -55,6 +56,7 @@ func ParseAddr(s string) Addr {
 	if err != nil {
 		return nil
 	}
+	fmt.Print(host)
 	if ip := net.ParseIP(host); ip != nil {
 		if ip4 := ip.To4(); ip4 != nil {
 			addr = make([]byte, 1+net.IPv4len+2)

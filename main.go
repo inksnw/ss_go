@@ -2,8 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"os/signal"
@@ -11,11 +9,9 @@ import (
 )
 
 var flags struct {
-	Client   string
-	Server   string
-	Cipher   string
-	Password string
-	Socks    string
+	Client string
+	Server string
+	Socks  string
 }
 
 func main() {
@@ -40,6 +36,7 @@ func initFlag() {
 
 func client() {
 	addr, _, _, _ := parseURL(flags.Client)
+	//本机地址,远端地址
 	go socksLocal(flags.Socks, addr)
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
@@ -49,7 +46,9 @@ func client() {
 
 func server() {
 	addr, _, _, err := parseURL(flags.Server)
-	CheckErr(err)
+	if err != nil {
+		panic(err)
+	}
 	go tcpRemote(addr)
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
@@ -58,21 +57,11 @@ func server() {
 
 func parseURL(addrString string) (addr, cipher, password string, err error) {
 	u, err := url.Parse(addrString)
-	CheckErr(err)
+	if err != nil {
+		panic(err)
+	}
 	addr = u.Host
 	cipher = u.User.Username()
 	password, _ = u.User.Password()
 	return
-}
-
-var logger = log.New(os.Stderr, "", log.Lshortfile|log.LstdFlags)
-
-func logf(f string, v ...interface{}) {
-	logger.Output(2, fmt.Sprintf(f, v...))
-}
-
-func CheckErr(err error) {
-	if err != nil {
-		panic(err)
-	}
 }
