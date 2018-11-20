@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/ss_go/core"
 	"net/url"
 	"os"
 	"os/signal"
@@ -35,9 +36,9 @@ func initFlag() {
 }
 
 func client() {
-	addr, _, _, _ := parseURL(flags.Client)
-	//本机地址,远端地址
-	go socksLocal(flags.Socks, addr)
+	addr, cipher, password := parseURL(flags.Client)
+	ciph := core.PickCipher(cipher, password)
+	go socksLocal(flags.Socks, addr, ciph.StreamConn)
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
@@ -45,17 +46,15 @@ func client() {
 }
 
 func server() {
-	addr, _, _, err := parseURL(flags.Server)
-	if err != nil {
-		panic(err)
-	}
-	go tcpRemote(addr)
+	addr, cipher, password := parseURL(flags.Server)
+	ciph := core.PickCipher(cipher, password)
+	go tcpRemote(addr, ciph.StreamConn)
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 }
 
-func parseURL(addrString string) (addr, cipher, password string, err error) {
+func parseURL(addrString string) (addr, cipher, password string) {
 	u, err := url.Parse(addrString)
 	if err != nil {
 		panic(err)
