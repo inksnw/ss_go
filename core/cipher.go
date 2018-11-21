@@ -8,15 +8,12 @@ import (
 )
 
 type Cipher interface {
-	StreamConnCipher
+	StreamConn(net.Conn) net.Conn
 }
 type aeadCipher struct {
 	shadowaead.Cipher
 }
 
-type StreamConnCipher interface {
-	StreamConn(net.Conn) net.Conn
-}
 
 var aeadList = map[string]struct {
 	KeySize int
