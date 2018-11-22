@@ -14,7 +14,6 @@ type aeadCipher struct {
 	shadowaead.Cipher
 }
 
-
 var aeadList = map[string]struct {
 	KeySize int
 	New     func([]byte) (shadowaead.Cipher, error)

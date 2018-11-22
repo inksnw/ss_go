@@ -51,7 +51,6 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 			remoteConn.(*net.TCPConn).SetKeepAlive(true)
 			remoteConn = shadow(remoteConn)
 
-
 			if _, err = remoteConn.Write(targetAddr); err != nil {
 				fmt.Printf("failed to send target address: %v", err)
 				return
