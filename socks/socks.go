@@ -7,6 +7,9 @@ import (
 	"strconv"
 )
 
+// UDPEnabled is the toggle for UDP support
+var UDPEnabled = false
+
 // MaxAddrLen is the maximum size of SOCKS address in bytes.
 const MaxAddrLen = 1 + 1 + 255 + 2
 
@@ -44,9 +47,7 @@ const (
 	InfoUDPAssociate        = Error(9)
 )
 
-// UDPEnabled is the toggle for UDP support
-var UDPEnabled = false
-
+// Addr represents a SOCKS address as defined in RFC 1928 section 5.
 type Addr []byte
 
 // ParseAddr parses the address in string s. Returns nil if failed.
@@ -179,4 +180,28 @@ func (a Addr) String() string {
 	}
 
 	return net.JoinHostPort(host, port)
+}
+
+func SplitAddr(b []byte) Addr {
+	addrLen := 1
+	if len(b) < addrLen {
+		return nil
+	}
+	switch b[0] {
+	case AtypDomainName:
+		if len(b) < 2 {
+			return nil
+		}
+		addrLen = 1 + 1 + int(b[1]) + 2
+	case AtypIPv4:
+		addrLen = 1 + net.IPv4len + 2
+	case AtypIPv6:
+		addrLen = 1 + net.IPv6len + 2
+	default:
+		return nil
+	}
+	if len(b) < addrLen {
+		return nil
+	}
+	return b[:addrLen]
 }

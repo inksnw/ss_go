@@ -9,7 +9,9 @@ import (
 
 type Cipher interface {
 	StreamConn(net.Conn) net.Conn
+	PacketConn(net.PacketConn) net.PacketConn
 }
+
 type aeadCipher struct {
 	shadowaead.Cipher
 }
@@ -23,6 +25,10 @@ var aeadList = map[string]struct {
 
 func (aead *aeadCipher) StreamConn(c net.Conn) net.Conn {
 	return shadowaead.NewConn(c, aead)
+}
+
+func (aead *aeadCipher) PacketConn(c net.PacketConn) net.PacketConn {
+	return shadowaead.NewPacketConn(c, aead)
 }
 
 func PickCipher(name, password string) Cipher {

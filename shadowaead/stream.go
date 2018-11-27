@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"io"
 	"net"
+	"sync"
 )
 
 // payloadSizeMask is the maximum size of payload in bytes.
@@ -16,6 +17,13 @@ type writer struct {
 	cipher.AEAD
 	nonce []byte
 	buf   []byte
+}
+
+type packetConn struct {
+	net.PacketConn
+	Cipher
+	sync.Mutex
+	buf []byte // write lock
 }
 
 // NewWriter wraps an io.Writer with AEAD encryption.
@@ -269,4 +277,10 @@ func (c *streamConn) ReadFrom(r io.Reader) (int64, error) {
 // NewConn wraps a stream-oriented net.Conn with cipher.
 func NewConn(c net.Conn, ciph Cipher) net.Conn {
 	return &streamConn{Conn: c, Cipher: ciph}
+}
+
+// NewPacketConn wraps a net.PacketConn with cipher
+func NewPacketConn(c net.PacketConn, ciph Cipher) net.PacketConn {
+	const maxPacketSize = 64 * 1024
+	return &packetConn{PacketConn: c, Cipher: ciph, buf: make([]byte, maxPacketSize)}
 }
