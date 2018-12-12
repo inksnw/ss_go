@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/ss_go/core"
 	"github.com/ss_go/socks"
+	"log"
 	"net/url"
 	"os"
 	"os/signal"
@@ -22,9 +24,14 @@ var flags struct {
 	Socks    string
 	UDPSocks bool
 	UDPTun   string
-	TCPTun    string
+	TCPTun   string
 }
 
+var logger = log.New(os.Stderr, "", log.Lshortfile|log.LstdFlags)
+
+func logf(f string, v ...interface{}) {
+	logger.Output(2, fmt.Sprintf(f, v...))
+}
 func main() {
 	initFlag()
 	if flags.Client != "" {
@@ -65,7 +72,6 @@ func client() {
 			go tcpTun(p[0], addr, p[1], ciph.StreamConn)
 		}
 	}
-
 
 	if flags.Socks != "" {
 		socks.UDPEnabled = flags.UDPSocks

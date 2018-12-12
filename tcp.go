@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/ss_go/socks"
 	"io"
 	"net"
@@ -23,26 +22,26 @@ func socksLocal(addr, server string, shadow func(net.Conn) net.Conn) {
 func tcpTun(addr, server, target string, shadow func(net.Conn) net.Conn) {
 	tgt := socks.ParseAddr(target)
 	if tgt == nil {
-		fmt.Print("invalid target address %q", target)
+		logf("invalid target address %q", target)
 		return
 	}
-	fmt.Print("TCP tunnel %s <-> %s <-> %s", addr, server, target)
+	logf("TCP tunnel %s <-> %s <-> %s", addr, server, target)
 	tcpLocal(addr, server, shadow, func(net.Conn) (socks.Addr, error) { return tgt, nil })
 }
 func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(net.Conn) (socks.Addr, error)) {
 	localServer, err := net.Listen("tcp", addr)
 	if err != nil {
-		fmt.Printf("failed to listen on %s: %v", addr, err)
+		logf("failed to listen on %s: %v", addr, err)
 		return
 	} else {
-		//fmt.Printf("本机->远程主机  %s -> %s\n", addr, server)
+		logf("本机->远程主机  %s -> %s\n", addr, server)
 	}
 
 	for {
 		localConn, err := localServer.Accept()
 
 		if err != nil {
-			fmt.Printf("failed to accept: %s", err)
+			logf("failed to accept: %s", err)
 			continue
 		}
 		go func() {
@@ -50,12 +49,12 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 			localConn.(*net.TCPConn).SetKeepAlive(true)
 			targetAddr, err := getAddr(localConn)
 			if err != nil {
-				fmt.Printf("failed to get target address: %v", err)
+				logf("failed to get target address: %v", err)
 				return
 			}
 			remoteConn, err := net.Dial("tcp", server)
 			if err != nil {
-				fmt.Printf("failed to connect to server %v: %v", server, err)
+				logf("failed to connect to server %v: %v", server, err)
 				return
 			}
 			defer remoteConn.Close()
@@ -63,7 +62,7 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 			remoteConn = shadow(remoteConn)
 
 			if _, err = remoteConn.Write(targetAddr); err != nil {
-				fmt.Printf("failed to send target address: %v", err)
+				logf("failed to send target address: %v", err)
 				return
 			}
 			_, _, err = relay(remoteConn, localConn)
@@ -71,7 +70,7 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 				if err, ok := err.(net.Error); ok && err.Timeout() {
 					return // ignore i/o timeout
 				}
-				fmt.Printf("relay error: %v", err)
+				logf("relay error: %v", err)
 			}
 		}()
 
@@ -82,15 +81,15 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 func tcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		fmt.Printf("failed to listen on %s: %v", addr, err)
+		logf("failed to listen on %s: %v", addr, err)
 		return
 	}
 
-	fmt.Printf("listening TCP on %s", addr)
+	logf("listening TCP on %s", addr)
 	for {
 		c, err := l.Accept()
 		if err != nil {
-			fmt.Printf("failed to accept: %v", err)
+			logf("failed to accept: %v", err)
 			continue
 		}
 
@@ -101,25 +100,25 @@ func tcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 			c = shadow(c)
 			tgt, err := socks.ReadAddr(c)
 			if err != nil {
-				fmt.Printf("failed to get target address: %v", err)
+				logf("failed to get target address: %v", err)
 				return
 			}
 
 			rc, err := net.Dial("tcp", tgt.String())
 			if err != nil {
-				fmt.Printf("failed to connect to target: %v", err)
+				logf("failed to connect to target: %v", err)
 				return
 			}
 			defer rc.Close()
 			rc.(*net.TCPConn).SetKeepAlive(true)
 
-			fmt.Printf("proxy %s <-> %s", c.RemoteAddr(), tgt)
+			logf("proxy %s <-> %s", c.RemoteAddr(), tgt)
 			_, _, err = relay(c, rc)
 			if err != nil {
 				if err, ok := err.(net.Error); ok && err.Timeout() {
 					return // ignore i/o timeout
 				}
-				fmt.Printf("relay error: %v", err)
+				logf("relay error: %v", err)
 			}
 		}()
 	}
