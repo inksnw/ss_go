@@ -22,6 +22,7 @@ var flags struct {
 	Socks    string
 	UDPSocks bool
 	UDPTun   string
+	TCPTun    string
 }
 
 func main() {
@@ -39,6 +40,7 @@ func initFlag() {
 	flag.StringVar(&flags.Socks, "socks", "", "客户端监听地址")
 	flag.BoolVar(&flags.UDPSocks, "u", false, "(client-only) Enable UDP support for SOCKS")
 	flag.StringVar(&flags.UDPTun, "udptun", "", "(client-only) UDP tunnel (laddr1=raddr1,laddr2=raddr2,...)")
+	flag.StringVar(&flags.TCPTun, "tcptun", "", "(client-only) TCP tunnel (laddr1=raddr1,laddr2=raddr2,...)")
 	flag.Parse()
 	if flags.Client == "" && flags.Server == "" {
 		flag.Usage()
@@ -50,8 +52,6 @@ func client() {
 	addr, cipher, password := parseURL(flags.Client)
 	ciph := core.PickCipher(cipher, password)
 
-	go socksLocal(flags.Socks, addr, ciph.StreamConn)
-
 	if flags.UDPTun != "" {
 		for _, tun := range strings.Split(flags.UDPTun, ",") {
 			p := strings.Split(tun, "=")
@@ -59,9 +59,20 @@ func client() {
 		}
 	}
 
-	socks.UDPEnabled = flags.UDPSocks
-	if flags.UDPSocks {
-		go udpSocksLocal(flags.Socks, addr, ciph.PacketConn)
+	if flags.TCPTun != "" {
+		for _, tun := range strings.Split(flags.TCPTun, ",") {
+			p := strings.Split(tun, "=")
+			go tcpTun(p[0], addr, p[1], ciph.StreamConn)
+		}
+	}
+
+
+	if flags.Socks != "" {
+		socks.UDPEnabled = flags.UDPSocks
+		go socksLocal(flags.Socks, addr, ciph.StreamConn)
+		if flags.UDPSocks {
+			go udpSocksLocal(flags.Socks, addr, ciph.PacketConn)
+		}
 	}
 
 	sigCh := make(chan os.Signal, 1)
