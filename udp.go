@@ -67,14 +67,11 @@ func (m *natmap) Add(peer net.Addr, dst, src net.PacketConn, role mode) {
 
 // Listen on laddr for Socks5 UDP packets, encrypt and send to server to reach target.
 func udpSocksLocal(laddr, server string, shadow func(conn net.PacketConn) net.PacketConn) {
-
-	fmt.Printf("地址是: %s\n", server)
-	fmt.Printf("##################")
-	server="127.0.0.1:8488"
-	srvAddr, err := net.ResolveIPAddr("udp", server)
+	srvAddr, err := net.ResolveUDPAddr("udp", server)
 	if err != nil {
 		fmt.Printf("UDP server address error: %v", err)
 		return
+
 	}
 	c, err := net.ListenPacket("udp", laddr)
 	if err != nil {

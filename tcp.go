@@ -35,7 +35,7 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 		fmt.Printf("failed to listen on %s: %v", addr, err)
 		return
 	} else {
-		fmt.Printf("本机->远程主机  %s -> %s\n", addr, server)
+		//fmt.Printf("本机->远程主机  %s -> %s\n", addr, server)
 	}
 
 	for {
