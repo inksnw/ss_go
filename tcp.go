@@ -39,7 +39,6 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 
 	for {
 		localConn, err := localServer.Accept()
-
 		if err != nil {
 			logf("failed to accept: %s", err)
 			continue

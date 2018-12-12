@@ -15,6 +15,13 @@ type Cipher interface {
 	Decrypter(salt []byte) (cipher.AEAD, error)
 }
 
+
+type metaCipher struct {
+	psk      []byte
+	makeAEAD func(key []byte) (cipher.AEAD, error)
+}
+
+
 func (a *metaCipher) KeySize() int { return len(a.psk) }
 func (a *metaCipher) SaltSize() int {
 	if ks := a.KeySize(); ks > 16 {
@@ -40,10 +47,6 @@ func hkdfSHA1(secret, salt, info, outkey []byte) {
 	}
 }
 
-type metaCipher struct {
-	psk      []byte
-	makeAEAD func(key []byte) (cipher.AEAD, error)
-}
 
 // Chacha20Poly1305 creates a new Cipher with a pre-shared key. len(psk)
 // must be 32.

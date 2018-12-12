@@ -32,6 +32,7 @@ var logger = log.New(os.Stderr, "", log.Lshortfile|log.LstdFlags)
 func logf(f string, v ...interface{}) {
 	logger.Output(2, fmt.Sprintf(f, v...))
 }
+
 func main() {
 	initFlag()
 	if flags.Client != "" {
