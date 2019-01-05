@@ -139,16 +139,6 @@ func Handshake(rw io.ReadWriter) (Addr, error) {
 	switch cmd {
 	case CmdConnect:
 		_, err = rw.Write([]byte{5, 0, 0, 1, 0, 0, 0, 0, 0, 0}) // SOCKS v5, reply succeeded
-	case CmdUDPAssociate:
-		if !UDPEnabled {
-			return nil, ErrCommandNotSupported
-		}
-		listenAddr := ParseAddr(rw.(net.Conn).LocalAddr().String())
-		_, err = rw.Write(append([]byte{5, 0, 0}, listenAddr...)) // SOCKS v5, reply succeeded
-		if err != nil {
-			return nil, ErrCommandNotSupported
-		}
-		err = InfoUDPAssociate
 	default:
 		return nil, ErrCommandNotSupported
 	}
@@ -180,26 +170,3 @@ func (a Addr) String() string {
 	return net.JoinHostPort(host, port)
 }
 
-func SplitAddr(b []byte) Addr {
-	addrLen := 1
-	if len(b) < addrLen {
-		return nil
-	}
-	switch b[0] {
-	case AtypDomainName:
-		if len(b) < 2 {
-			return nil
-		}
-		addrLen = 1 + 1 + int(b[1]) + 2
-	case AtypIPv4:
-		addrLen = 1 + net.IPv4len + 2
-	case AtypIPv6:
-		addrLen = 1 + net.IPv6len + 2
-	default:
-		return nil
-	}
-	if len(b) < addrLen {
-		return nil
-	}
-	return b[:addrLen]
-}

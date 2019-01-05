@@ -18,16 +18,7 @@ func socksLocal(addr, server string, shadow func(net.Conn) net.Conn) {
 
 }
 
-// Create a TCP tunnel from addr to target via server.
-func tcpTun(addr, server, target string, shadow func(net.Conn) net.Conn) {
-	tgt := socks.ParseAddr(target)
-	if tgt == nil {
-		logf("invalid target address %q", target)
-		return
-	}
-	logf("TCP tunnel %s <-> %s <-> %s", addr, server, target)
-	tcpLocal(addr, server, shadow, func(net.Conn) (socks.Addr, error) { return tgt, nil })
-}
+
 func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(net.Conn) (socks.Addr, error)) {
 	localServer, err := net.Listen("tcp", addr)
 	if err != nil {
