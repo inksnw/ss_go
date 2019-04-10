@@ -78,23 +78,28 @@ func handelConn(conn net.Conn) {
 		conn.Close()
 		return
 	}
+	relay(conn,remote)
+
+}
+
+func relay(left,right net.Conn)  {
+
 	wg := new(sync.WaitGroup)
 	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
-		io.Copy(remote, r)
-		remote.Close()
+		io.Copy(right, left)
+		right.Close()
 	}()
 
 	go func() {
-		defer conn.Close()
-		io.Copy(conn, remote)
-		conn.Close()
+		defer left.Close()
+		io.Copy(left, right)
+		left.Close()
 	}()
 
 	wg.Wait()
-
 }
 
 func handelShake(r *bufio.Reader, conn net.Conn) error {
