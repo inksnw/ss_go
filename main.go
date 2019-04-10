@@ -1,17 +1,49 @@
 package main
 
 import (
-	"bufio"
-	"encoding/binary"
-	"errors"
-	"fmt"
-	"io"
+	"flag"
+	"github.com/ss_go/socks"
 	"log"
 	"net"
-	"sync"
 )
 
+var flags struct {
+	Type string
+}
+
 func main() {
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
+
+	flag.StringVar(&flags.Type, "t", "", "c/s")
+	flag.Parse()
+
+	if flags.Type == "c" {
+		client()
+
+	} else if flags.Type == "s" {
+		server()
+
+	}
+
+}
+
+func server() {
+	listener, err := net.Listen("tcp", ":8787")
+	if err != nil {
+		panic(err)
+	}
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Fatal(err)
+		}
+		go socks.TcpRemote(conn)
+
+	}
+
+}
+
+func client() {
 	listener, err := net.Listen("tcp", ":8889")
 	if err != nil {
 		panic(err)
@@ -21,96 +53,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		go handelConn(conn)
+		go socks.TcpLocal(conn, "127.0.0.1:8787")
 
 	}
-
-}
-func readAddr(r *bufio.Reader) (string, error) {
-	version, _ := r.ReadByte()
-	if version != 5 {
-		return "", errors.New("非socks5协议")
-	}
-	cmd, _ := r.ReadByte()
-	if cmd != 1 {
-		return "", errors.New("客户端请求方法不为CONNECT")
-	}
-	/*
-	  数字“1”：CONNECT ；
-	  数字“2”：BIND ；
-	  数字“3”：UDP ASSOCIATE；
-	*/
-	r.ReadByte() //RSV保留字跳过
-
-	addrType, _ := r.ReadByte()
-	if addrType != 3 {
-		return "", errors.New("讲求地址不为域名")
-	}
-	addrLen, _ := r.ReadByte()
-	addr := make([]byte, addrLen)
-	io.ReadFull(r, addr)
-	var port int16
-	binary.Read(r, binary.BigEndian, &port)
-	return fmt.Sprintf("%s:%d", addr, port), nil
-
-}
-
-func handelConn(conn net.Conn) {
-	defer conn.Close()
-	r := bufio.NewReader(conn)
-	err := handelShake(r, conn)
-	if err != nil {
-		//log.Print()
-	}
-	addr, err := readAddr(r)
-	if err != nil {
-		log.Print(err)
-	}
-	log.Print("请求完整地址", addr)
-	resp := []byte{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	_, _ = conn.Write(resp)
-
-	var remote net.Conn
-	remote, err = net.Dial("tcp", addr)
-
-	if err != nil {
-		log.Print(err)
-		conn.Close()
-		return
-	}
-	relay(conn,remote)
-
-}
-
-func relay(left,right net.Conn)  {
-
-	wg := new(sync.WaitGroup)
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		io.Copy(right, left)
-		right.Close()
-	}()
-
-	go func() {
-		defer left.Close()
-		io.Copy(left, right)
-		left.Close()
-	}()
-
-	wg.Wait()
-}
-
-func handelShake(r *bufio.Reader, conn net.Conn) error {
-	version, _ := r.ReadByte()
-	if version != 5 {
-		return errors.New("该协议不是socks5协议")
-	}
-	methodLen, _ := r.ReadByte()
-	buf := make([]byte, methodLen)
-	io.ReadFull(r, buf)
-	_, err := conn.Write([]byte{5, 0})
-	return err
 
 }

@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/ssg.iml" filepath="$PROJECT_DIR$/ssg.iml" />
+      <module fileurl="file://$PROJECT_DIR$/socks/socks.iml" filepath="$PROJECT_DIR$/socks/socks.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ss_go.iml" filepath="$PROJECT_DIR$/ss_go.iml" />
     </modules>
   </component>
 </project>
