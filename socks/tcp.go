@@ -7,22 +7,23 @@ import (
 
 func TcpLocal(localConn net.Conn, server string) {
 	defer localConn.Close()
-	targetAddr, err := HandelShake(localConn)
+	//_ = localConn.(*net.TCPConn).SetKeepAlive(true)
+	targetAddr, err := handShake(localConn)
 	if err != nil {
-		//log.Print()
+		log.Printf("failed to get target address: %v", err)
+		return
 	}
-
-	if err != nil {
-		log.Print(err)
-	}
-	log.Print("请求完整地址", targetAddr)
 
 	remoteConn, err := net.Dial("tcp", server)
-	remoteConn.Write(targetAddr)
-
 	if err != nil {
-		log.Print(err)
-		localConn.Close()
+		log.Printf("failed to connect to server %v: %v", server, err)
+		return
+	}
+	defer remoteConn.Close()
+	_ = remoteConn.(*net.TCPConn).SetKeepAlive(true)
+
+	if _, err = remoteConn.Write(targetAddr); err != nil {
+		log.Printf("failed to send target address: %v", err)
 		return
 	}
 	Relay(remoteConn, localConn)
@@ -31,21 +32,20 @@ func TcpLocal(localConn net.Conn, server string) {
 
 func TcpRemote(conn net.Conn) {
 	defer conn.Close()
-
-	addr, err := ReadAddr(conn)
+	_ = conn.(*net.TCPConn).SetKeepAlive(true)
+	s := make([]byte, MaxAddrLen)
+	addr, err := readAddr(conn, s)
 	if err != nil {
-		log.Print(err)
+		log.Printf("failed to get target address: %v", err)
 	}
 
-	var remote net.Conn
-	remote, err = net.Dial("tcp", addr.String())
-
+	remote, err := net.Dial("tcp", addr.String())
 	if err != nil {
-		log.Print(err)
-		conn.Close()
+		log.Printf("failed to connect to target: %v", err)
 		return
 	}
-	log.Print("请求完整地址", addr.String())
+	defer remote.Close()
+	_ = remote.(*net.TCPConn).SetKeepAlive(true)
 
 	Relay(conn, remote)
 }

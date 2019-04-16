@@ -13,16 +13,42 @@ const (
 	CmdUDPAssociate = 3
 )
 
-func HandelShake(rw io.ReadWriter) (Addr, error) {
+// Addr represents a SOCKS address as defined in RFC 1928 section 5.
+type Addr []byte
+
+// MaxAddrLen is the maximum size of SOCKS address in bytes.
+const MaxAddrLen = 1 + 1 + 255 + 2
+
+// SOCKS address types as defined in RFC 1928 section 5.
+const (
+	AtypIPv4       = 1
+	AtypDomainName = 3
+	AtypIPv6       = 4
+)
+
+// Error represents a SOCKS error
+type Error byte
+
+func (err Error) Error() string {
+	return "SOCKS error: " + strconv.Itoa(int(err))
+}
+
+// SOCKS errors as defined in RFC 1928 section 6.
+const (
+	ErrCommandNotSupported = Error(7)
+	ErrAddressNotSupported = Error(8)
+)
+
+func handShake(rw io.ReadWriter) (Addr, error) {
 	buf := make([]byte, MaxAddrLen)
 	if _, err := io.ReadFull(rw, buf[:2]); err != nil {
 		return nil, err
 	}
-	nmethods := buf[1]
-	if _, err := io.ReadFull(rw, buf[:nmethods]); err != nil {
+	methodLen := buf[1]
+	if _, err := io.ReadFull(rw, buf[:methodLen]); err != nil {
 		return nil, err
 	}
-	//wirte VER METHOD
+	//write VER METHOD
 	if _, err := rw.Write([]byte{5, 0}); err != nil {
 		return nil, err
 	}
@@ -64,41 +90,8 @@ func Relay(left, right net.Conn) {
 	wg.Wait()
 }
 
-// Addr represents a SOCKS address as defined in RFC 1928 section 5.
-type Addr []byte
-
-// MaxAddrLen is the maximum size of SOCKS address in bytes.
-const MaxAddrLen = 1 + 1 + 255 + 2
-
-// SOCKS address types as defined in RFC 1928 section 5.
-const (
-	AtypIPv4       = 1
-	AtypDomainName = 3
-	AtypIPv6       = 4
-)
-
-// Error represents a SOCKS error
-type Error byte
-
-func (err Error) Error() string {
-	return "SOCKS error: " + strconv.Itoa(int(err))
-}
-
-// SOCKS errors as defined in RFC 1928 section 6.
-const (
-	ErrCommandNotSupported = Error(7)
-	ErrAddressNotSupported = Error(8)
-)
-
-// ReadAddr reads just enough bytes from r to get a valid Addr.
-func ReadAddr(r io.Reader) (Addr, error) {
-	return readAddr(r, make([]byte, MaxAddrLen))
-}
-
 func readAddr(r io.Reader, b []byte) (Addr, error) {
-	if len(b) < MaxAddrLen {
-		return nil, io.ErrShortBuffer
-	}
+
 	_, err := io.ReadFull(r, b[:1]) // read 1st byte for address type
 	if err != nil {
 		return nil, err

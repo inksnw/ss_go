@@ -13,18 +13,13 @@ var flags struct {
 
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
-
 	flag.StringVar(&flags.Type, "t", "", "c/s")
 	flag.Parse()
-
 	if flags.Type == "c" {
 		client()
-
 	} else if flags.Type == "s" {
 		server()
-
 	}
-
 }
 
 func server() {
@@ -38,7 +33,6 @@ func server() {
 			log.Fatal(err)
 		}
 		go socks.TcpRemote(conn)
-
 	}
 
 }
