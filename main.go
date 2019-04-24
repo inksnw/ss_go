@@ -47,7 +47,7 @@ func client() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		go socks.TcpLocal(conn, "127.0.0.1:8787")
+		go socks.SocksLocal(conn, "127.0.0.1:8787")
 
 	}
 

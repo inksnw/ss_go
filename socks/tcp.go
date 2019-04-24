@@ -1,14 +1,25 @@
 package socks
 
 import (
+	"io"
 	"log"
 	"net"
 )
 
-func TcpLocal(localConn net.Conn, server string) {
+func SocksLocal(localConn net.Conn, server string) {
+	log.Printf("use socks proxy")
+	tcpLocal(localConn, server, handShake)
+}
+
+//func tcpTun()  {
+//
+//}
+
+func tcpLocal(localConn net.Conn, server string, getAddr func(conn io.ReadWriter) (addr Addr, err error)) {
 	defer localConn.Close()
 	//_ = localConn.(*net.TCPConn).SetKeepAlive(true)
-	targetAddr, err := handShake(localConn)
+	//targetAddr, err := handShake(localConn)
+	targetAddr, err := getAddr(localConn)
 	if err != nil {
 		log.Printf("failed to get target address: %v", err)
 		return
