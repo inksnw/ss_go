@@ -11,14 +11,19 @@ func SocksLocal(laddr, server string) {
 	tcpLocal(laddr, server, handShake)
 }
 
-//func tcpTun(localConn net.Conn, server string)  {
-//	log.Printf("use tcp tun")
-//
-//	tgt:=ParseAddr()
-//
-//	tcpLocal(localConn, server, ParseAddr)
-//
-//}
+func TcpTun(addr, server, target string) {
+	log.Printf("use tcp tun")
+
+	tgt := ParseAddr(target)
+	if tgt == nil {
+		log.Printf("invalid target address %q", target)
+		return
+	}
+	log.Printf("TCP tunnel %s <-> %s <-> %s", addr, server, target)
+	getaddr := func(io.ReadWriter) (Addr, error) { return tgt, nil }
+	tcpLocal(addr, server, getaddr)
+
+}
 
 func tcpLocal(addr, server string, getAddr func(conn io.ReadWriter) (addr Addr, err error)) {
 
