@@ -116,6 +116,43 @@ func readAddr(r io.Reader, b []byte) (Addr, error) {
 	return nil, ErrAddressNotSupported
 }
 
+// ParseAddr parses the address in string s. Returns nil if failed.
+func ParseAddr(s string) Addr {
+	var addr Addr
+	host, port, err := net.SplitHostPort(s)
+	if err != nil {
+		return nil
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		if ip4 := ip.To4(); ip4 != nil {
+			addr = make([]byte, 1+net.IPv4len+2)
+			addr[0] = AtypIPv4
+			copy(addr[1:], ip4)
+		} else {
+			addr = make([]byte, 1+net.IPv6len+2)
+			addr[0] = AtypIPv6
+			copy(addr[1:], ip)
+		}
+	} else {
+		if len(host) > 255 {
+			return nil
+		}
+		addr = make([]byte, 1+1+len(host)+2)
+		addr[0] = AtypDomainName
+		addr[1] = byte(len(host))
+		copy(addr[2:], host)
+	}
+
+	portnum, err := strconv.ParseUint(port, 10, 16)
+	if err != nil {
+		return nil
+	}
+
+	addr[len(addr)-2], addr[len(addr)-1] = byte(portnum>>8), byte(portnum)
+
+	return addr
+}
+
 // String serializes SOCKS address a to string form.
 func (a Addr) String() string {
 	var host, port string
