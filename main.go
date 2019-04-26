@@ -13,6 +13,7 @@ import (
 var flags struct {
 	Type   string
 	TCPTun string
+	UDPTun string
 }
 
 func main() {
@@ -25,16 +26,22 @@ func main() {
 	serverSelf := ":8787"
 	if flags.Type == "c" {
 		go socks.SocksLocal(local, server)
+		if flags.TCPTun != "" {
+			for _, tun := range strings.Split(flags.TCPTun, ",") {
+				p := strings.Split(tun, "=")
+				go socks.TcpTun(p[0], server, p[1])
+			}
+		}
+		if flags.UDPTun != "" {
+			for _, tun := range strings.Split(flags.UDPTun, ",") {
+				p := strings.Split(tun, "=")
+				go socks.UdpLocal(p[0], addr, p[1])
+			}
+		}
 	} else if flags.Type == "s" {
 		go socks.TcpRemote(serverSelf)
 	}
 
-	if flags.TCPTun != "" {
-		for _, tun := range strings.Split(flags.TCPTun, ",") {
-			p := strings.Split(tun, "=")
-			go socks.TcpTun(p[0], server, p[1])
-		}
-	}
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
