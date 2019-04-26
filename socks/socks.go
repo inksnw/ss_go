@@ -116,6 +116,35 @@ func readAddr(r io.Reader, b []byte) (Addr, error) {
 	return nil, ErrAddressNotSupported
 }
 
+// SplitAddr slices a SOCKS address from beginning of b. Returns nil if failed.
+func SplitAddr(b []byte) Addr {
+	addrLen := 1
+	if len(b) < addrLen {
+		return nil
+	}
+
+	switch b[0] {
+	case AtypDomainName:
+		if len(b) < 2 {
+			return nil
+		}
+		addrLen = 1 + 1 + int(b[1]) + 2
+	case AtypIPv4:
+		addrLen = 1 + net.IPv4len + 2
+	case AtypIPv6:
+		addrLen = 1 + net.IPv6len + 2
+	default:
+		return nil
+
+	}
+
+	if len(b) < addrLen {
+		return nil
+	}
+
+	return b[:addrLen]
+}
+
 // ParseAddr parses the address in string s. Returns nil if failed.
 func ParseAddr(s string) Addr {
 	var addr Addr

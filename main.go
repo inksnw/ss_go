@@ -35,11 +35,12 @@ func main() {
 		if flags.UDPTun != "" {
 			for _, tun := range strings.Split(flags.UDPTun, ",") {
 				p := strings.Split(tun, "=")
-				go socks.UdpLocal(p[0], addr, p[1])
+				go socks.UdpLocal(p[0], server, p[1])
 			}
 		}
 	} else if flags.Type == "s" {
 		go socks.TcpRemote(serverSelf)
+		go socks.UdpRemote(serverSelf)
 	}
 
 	sigCh := make(chan os.Signal, 1)

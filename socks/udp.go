@@ -3,7 +3,6 @@ package socks
 import (
 	"fmt"
 	"github.com/shadowsocks/go-shadowsocks2/socks"
-
 	"log"
 	"net"
 	"sync"
@@ -17,7 +16,7 @@ const (
 	relayClient
 	socksClient
 )
-
+const UDPTimeout = 5 * time.Minute
 const udpBufSize = 64 * 1024
 
 // Listen on laddr for UDP packets, encrypt and send to server to reach target.
@@ -42,7 +41,7 @@ func UdpLocal(laddr, server, target string) {
 	}
 	defer c.Close()
 
-	nm := newNATmap(5 * time.Minute)
+	nm := newNATmap(UDPTimeout)
 	buf := make([]byte, udpBufSize)
 	copy(buf, tgt)
 
@@ -68,6 +67,59 @@ func UdpLocal(laddr, server, target string) {
 		_, err = pc.WriteTo(buf[:len(tgt)+n], srvAddr)
 		if err != nil {
 			log.Printf("UDP local write error: %v", err)
+			continue
+		}
+	}
+}
+
+// Listen on addr for encrypted packets and basically do UDP NAT.
+func UdpRemote(addr string) {
+	c, err := net.ListenPacket("udp", addr)
+	if err != nil {
+		log.Printf("UDP remote listen error: %v", err)
+		return
+	}
+	defer c.Close()
+
+	nm := newNATmap(UDPTimeout)
+	buf := make([]byte, udpBufSize)
+
+	log.Printf("listening UDP on %s", addr)
+	for {
+		n, raddr, err := c.ReadFrom(buf)
+		if err != nil {
+			log.Printf("UDP remote read error: %v", err)
+			continue
+		}
+
+		tgtAddr := socks.SplitAddr(buf[:n])
+		if tgtAddr == nil {
+			log.Printf("failed to split target address from packet: %q", buf[:n])
+			continue
+		}
+
+		tgtUDPAddr, err := net.ResolveUDPAddr("udp", tgtAddr.String())
+		if err != nil {
+			log.Printf("failed to resolve target UDP address: %v", err)
+			continue
+		}
+
+		payload := buf[len(tgtAddr):n]
+
+		pc := nm.Get(raddr.String())
+		if pc == nil {
+			pc, err = net.ListenPacket("udp", "")
+			if err != nil {
+				log.Printf("UDP remote listen error: %v", err)
+				continue
+			}
+
+			nm.Add(raddr, c, pc, remoteServer)
+		}
+
+		_, err = pc.WriteTo(payload, tgtUDPAddr) // accept only UDPAddr despite the signature
+		if err != nil {
+			log.Printf("UDP remote write error: %v", err)
 			continue
 		}
 	}
@@ -124,12 +176,12 @@ func timedCopy(dst net.PacketConn, target net.Addr, src net.PacketConn, timeout 
 
 		switch role {
 		case remoteServer: // server -> client: add original packet source
-			srcAddr := socks.ParseAddr(raddr.String())
+			srcAddr := ParseAddr(raddr.String())
 			copy(buf[len(srcAddr):], buf[:n])
 			copy(buf, srcAddr)
 			_, err = dst.WriteTo(buf[:len(srcAddr)+n], target)
 		case relayClient: // client -> user: strip original packet source
-			srcAddr := socks.SplitAddr(buf[:n])
+			srcAddr := SplitAddr(buf[:n])
 			_, err = dst.WriteTo(buf[len(srcAddr):n], target)
 		case socksClient: // client -> socks5 program: just set RSV and FRAG = 0
 			_, err = dst.WriteTo(append([]byte{0, 0, 0}, buf[:n]...), target)
