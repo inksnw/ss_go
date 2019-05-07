@@ -39,7 +39,7 @@ const (
 	ErrAddressNotSupported = Error(8)
 )
 
-func handShake(rw io.ReadWriter) (Addr, error) {
+func handShakeGetAddr(rw io.ReadWriter) (Addr, error) {
 	buf := make([]byte, MaxAddrLen)
 	if _, err := io.ReadFull(rw, buf[:2]); err != nil {
 		return nil, err

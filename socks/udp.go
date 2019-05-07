@@ -20,7 +20,7 @@ const UDPTimeout = 5 * time.Minute
 const udpBufSize = 64 * 1024
 
 // Listen on laddr for UDP packets, encrypt and send to server to reach target.
-func UdpLocal(laddr, server, target string) {
+func UdpLocal(laddr, server, target string, shadow func(net.PacketConn) net.PacketConn) {
 	srvAddr, err := net.ResolveUDPAddr("udp", server)
 	if err != nil {
 		log.Printf("UDP server address error: %v", err)
@@ -60,7 +60,7 @@ func UdpLocal(laddr, server, target string) {
 				log.Printf("UDP local listen error: %v", err)
 				continue
 			}
-
+			pc = shadow(pc)
 			nm.Add(raddr, c, pc, relayClient)
 		}
 

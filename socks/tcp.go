@@ -6,12 +6,12 @@ import (
 	"net"
 )
 
-func SocksLocal(laddr, server string) {
+func SocksLocal(laddr, server string, shadow func(net.Conn) net.Conn) {
 	log.Printf("use socks proxy")
-	tcpLocal(laddr, server, handShake)
+	tcpLocal(laddr, server, handShakeGetAddr, shadow)
 }
 
-func TcpTun(addr, server, target string) {
+func TcpTun(addr, server, target string, shadow func(net.Conn) net.Conn) {
 	log.Printf("use tcp tun")
 
 	tgt := ParseAddr(target)
@@ -21,11 +21,11 @@ func TcpTun(addr, server, target string) {
 	}
 	log.Printf("TCP tunnel %s <-> %s <-> %s", addr, server, target)
 	getaddr := func(io.ReadWriter) (Addr, error) { return tgt, nil }
-	tcpLocal(addr, server, getaddr)
+	tcpLocal(addr, server, getaddr, shadow)
 
 }
 
-func tcpLocal(addr, server string, getAddr func(conn io.ReadWriter) (addr Addr, err error)) {
+func tcpLocal(addr, server string, handShakeGetAddr func(conn io.ReadWriter) (addr Addr, err error), shadow func(net.Conn) net.Conn) {
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -42,7 +42,7 @@ func tcpLocal(addr, server string, getAddr func(conn io.ReadWriter) (addr Addr, 
 			defer conn.Close()
 			//_ = conn.(*net.TCPConn).SetKeepAlive(true)
 			//targetAddr, err := handShake(conn)
-			targetAddr, err := getAddr(conn)
+			targetAddr, err := handShakeGetAddr(conn)
 			if err != nil {
 				log.Printf("failed to get target address: %v", err)
 				return
@@ -60,6 +60,8 @@ func tcpLocal(addr, server string, getAddr func(conn io.ReadWriter) (addr Addr, 
 				log.Printf("failed to send target address: %v", err)
 				return
 			}
+			remoteConn = shadow(remoteConn)
+
 			Relay(remoteConn, conn)
 		}()
 
