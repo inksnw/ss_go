@@ -26,10 +26,10 @@ func main() {
 	local := ":8889"
 	server := "127.0.0.1:8787"
 	serverSelf := ":8787"
+	cipher := "CHACHA20-IETF-POLY1305"
+	password := "123"
+	ciph, err := ciph.PickCipher(cipher, password)
 	if flags.Type == "c" {
-
-		ciph, err := ciph.PickCipher("DUMMY", "123")
-
 		if err != nil {
 			panic("choice ciph fail")
 		}
@@ -48,8 +48,9 @@ func main() {
 			}
 		}
 	} else if flags.Type == "s" {
-		go socks.TcpRemote(serverSelf)
-		go socks.UdpRemote(serverSelf)
+
+		go socks.TcpRemote(serverSelf, ciph.StreamConn)
+		go socks.UdpRemote(serverSelf, ciph.PacketConn)
 	}
 
 	sigCh := make(chan os.Signal, 1)

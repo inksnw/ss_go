@@ -69,7 +69,7 @@ func tcpLocal(addr, server string, handShakeGetAddr func(conn io.ReadWriter) (ad
 
 }
 
-func TcpRemote(addr string) {
+func TcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		panic(err)
@@ -83,6 +83,7 @@ func TcpRemote(addr string) {
 		go func() {
 			defer conn.Close()
 			_ = conn.(*net.TCPConn).SetKeepAlive(true)
+			conn = shadow(conn)
 			s := make([]byte, MaxAddrLen)
 			addr, err := readAddr(conn, s)
 			if err != nil {
